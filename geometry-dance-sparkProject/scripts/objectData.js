@@ -28,9 +28,11 @@ let _value = {};
 
 // Enables async/await in JS [part 1]
 (async function() {
-    _objs.triangle = await Scene.root.findFirst('triangle');
+    _objs.triangle = await Scene.root.findFirst('back-triangle-1');
     _objs.camReference = await Scene.root.findFirst('Camera');
     _objs.anchor = await Scene.root.findFirst('anchor');
+    _objs.faceAnchor = await Scene.root.findFirst('face-anchor');
+    _objs.testFaceWorld = await Scene.root.findFirst('test-face-world');
 
     snapChannels.triangleX = _objs.triangle.worldTransform.position.x;
     snapChannels.triangleY = _objs.triangle.worldTransform.position.y;
@@ -39,6 +41,10 @@ let _value = {};
     snapChannels.camX = _objs.camReference.worldTransform.position.x;
     snapChannels.camY = _objs.camReference.worldTransform.position.y;
     snapChannels.camZ = _objs.camReference.worldTransform.position.z;
+
+    snapChannels.faceX = _objs.faceAnchor.worldTransform.position.x;
+    snapChannels.faceY = _objs.faceAnchor.worldTransform.position.y;
+    snapChannels.faceZ = _objs.faceAnchor.worldTransform.position.z;
 
     Time.setIntervalWithSnapshot(snapChannels, Update, 50);
 })();
@@ -51,6 +57,12 @@ function Update (time, data) {
     _value.camX = NYFloor(data.camX, 1000);
     _value.camY = NYFloor(data.camY, 1000);
     _value.camZ = NYFloor(data.camZ, 1000);
+
+    _value.faceX = NYFloor(data.faceX, 1000);
+    _value.faceY = NYFloor(data.faceY, 1000);
+    _value.faceZ = NYFloor(data.faceZ, 1000);
+
+    _objs.testFaceWorld.worldTransform.position = Reactive.point(_value.faceX, _value.faceY, _value.faceZ);
 }
 
 function NYFloor (value, multiplier) {
