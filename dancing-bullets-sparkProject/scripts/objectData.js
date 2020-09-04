@@ -16,44 +16,49 @@
 // How to load in modules
 const Scene = require('Scene');
 const Time = require('Time');
+const Touch = require('TouchGestures');
+const Reactive = require('Reactive');
 
 // Use export keyword to make a symbol available in scripting debug console
 export const Diagnostics = require('Diagnostics');
 
-let objs = {};
+let _objs = {};
 let snapChannels = {};
-let objectValues = {};
+let _value = {};
 
 // Enables async/await in JS [part 1]
 (async function() {
-    objs.plane0 = await Scene.root.findFirst('plane0');
-    objs.camReference = await Scene.root.findFirst('Camera');
-    objs.anchor = await Scene.root.findFirst('anchor');
-    objs.touch = await Scene.root.findFirst('touch');
+    _objs.triangle = await Scene.root.findFirst('triangle');
+    _objs.camReference = await Scene.root.findFirst('Camera');
+    _objs.anchor = await Scene.root.findFirst('anchor');
 
-    snapChannels.plane0X = objs.plane0.worldTransform.position.x;
-    snapChannels.plane0Y = objs.plane0.worldTransform.position.y;
-    snapChannels.plane0Z = objs.plane0.worldTransform.position.z;
+    snapChannels.triangleX = _objs.triangle.worldTransform.position.x;
+    snapChannels.triangleY = _objs.triangle.worldTransform.position.y;
+    snapChannels.triangleZ = _objs.triangle.worldTransform.position.z;
 
-    snapChannels.camX = objs.camReference.worldTransform.position.x;
-    snapChannels.camY = objs.camReference.worldTransform.position.y;
-    snapChannels.camZ = objs.camReference.worldTransform.position.z;
+    snapChannels.camX = _objs.camReference.worldTransform.position.x;
+    snapChannels.camY = _objs.camReference.worldTransform.position.y;
+    snapChannels.camZ = _objs.camReference.worldTransform.position.z;
 
     Time.setIntervalWithSnapshot(snapChannels, Update, 50);
 })();
 
 function Update (time, data) {
-    objectValues.planeX = NYFloor(data.plane0X, 1000);
-    objectValues.planeY = NYFloor(data.plane0Y, 1000);
-    objectValues.planeZ = NYFloor(data.plane0Z, 1000);
+    _value.triangleX = NYFloor(data.triangleX, 1000);
+    _value.triangleY = NYFloor(data.triangleY, 1000);
+    _value.triangleZ = NYFloor(data.triangleZ, 1000);
 
-    objectValues.camX = NYFloor(data.camX, 1000);
-    objectValues.camY = NYFloor(data.camY, 1000);
-    objectValues.camZ = NYFloor(data.camZ, 1000);
+    _value.camX = NYFloor(data.camX, 1000);
+    _value.camY = NYFloor(data.camY, 1000);
+    _value.camZ = NYFloor(data.camZ, 1000);
 }
 
 function NYFloor (value, multiplier) {
     return Math.floor(value * multiplier) / multiplier;
 }
 
-export {objs, snapChannels, objectValues};
+function pointDistance (x1, y1, z1, x2, y2, z2)
+{
+    return Math.sqrt(Math.pow(x1-x2) + Math.pow(y1-y2) + Math.pow(z1-z2));
+}
+export {_objs, snapChannels, _value};

@@ -23,21 +23,35 @@ const Reactive = require('Reactive');
 // Use export keyword to make a symbol available in scripting debug console
 export const Diagnostics = require('Diagnostics');
 
-import {objs, snapChannels, objectValues} from "./objectData.js";
+import {_objs, snapChannels, _value} from "./objectData.js";
 
 // Enables async/await in JS [part 1]
 (async function() {
 
 })();
 
-TouchGestures.onTap().subscribe(gesture => {
-    Diagnostics.log(objectValues);
-    objs.anchor.worldTransform.position = Reactive.point(objectValues.camX, objectValues.camY, objectValues.camZ);
+TouchGestures.onTap().subscribe(gesture=>{
 
     const touchPoint = Reactive.point2d(gesture.location.x, gesture.location.y);
+    const depth = pointDistance(_value.triangleX, _value.triangleY, _value.triangleZ, _value.camX, _value.camY, _value.camZ);
 
-    const depth = objectValues.camZ - objectValues.planeZ;
     const newPos = Scene.unprojectWithDepth(touchPoint, depth);
 
-    objs.touch.worldTransform.position = newPos;
+
+    const snapObj = {
+        newPosX: newPos.x,
+        newPosY: newPos.y,
+        newPosZ: newPos.z
+    };
+
+    Time.setTimeoutWithSnapshot(snapObj, (time, data)=>{
+        _objs.anchor.worldTransform.position = Reactive.point(data.newPosX, data.newPosY, data.newPosZ);
+        Diagnostics.log(data);
+    }, 0);
 });
+
+function pointDistance (x1, y1, z1, x2, y2, z2)
+{
+    Diagnostics.log(`${x1}, ${y1}, ${z1}, ${x2}, ${y2}, ${z2}`);
+    return Math.sqrt(Math.pow(x1-x2, 2) + Math.pow(y1-y2, 2) + Math.pow(z1-z2, 2));
+}
