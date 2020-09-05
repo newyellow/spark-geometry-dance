@@ -25,6 +25,7 @@ const Animation = require('Animation');
 export const Diagnostics = require('Diagnostics');
 
 import {_objs, snapChannels, _value} from "./objectData.js";
+import {NYPoint} from "./NYPoint.js";
 
 let _touch = {};
 
@@ -78,34 +79,32 @@ Touch.onTap().subscribe(gesture=>{
     }, 0);
 });
 
-function backTriangleStart () {
+function backTriangleStart (triIndex) {
     // scale up
     const timeDriver = Animation.timeDriver({durationMilliseconds: 300});
-    const scaleSampler = Animation.samplers.easeOutQuart(0.0, 4.0);
+    const scaleSampler = Animation.samplers.easeOutQuart(0.0, 10.0);
     const scaleAnimation = Animation.animate(timeDriver, scaleSampler);
 
-    _touch.nowBackTri.transform.scaleX = scaleAnimation;
-    _touch.nowBackTri.transform.scaleY = scaleAnimation;
-    _touch.nowBackTri.transform.scaleZ = scaleAnimation;
+    _touch.backTriangles[triIndex].transform.scaleX = scaleAnimation;
+    _touch.backTriangles[triIndex].transform.scaleY = scaleAnimation;
+    _touch.backTriangles[triIndex].transform.scaleZ = scaleAnimation;
 
     timeDriver.start();
 }
 
-function backTriangleEnd () {
+function backTriangleEnd (triIndex) {
     // scale down animation
     const timeDriver = Animation.timeDriver({durationMilliseconds: 300});
-    const scaleSampler = Animation.samplers.easeOutQuart(4.0, 0.0);
+    const scaleSampler = Animation.samplers.easeOutQuart(10.0, 0.0);
     const scaleAnimation = Animation.animate(timeDriver, scaleSampler);
 
-    _touch.nowBackTri.transform.scaleX = scaleAnimation;
-    _touch.nowBackTri.transform.scaleY = scaleAnimation;
-    _touch.nowBackTri.transform.scaleZ = scaleAnimation;
+    _touch.backTriangles[triIndex].transform.scaleX = scaleAnimation;
+    _touch.backTriangles[triIndex].transform.scaleY = scaleAnimation;
+    _touch.backTriangles[triIndex].transform.scaleZ = scaleAnimation;
 
-    timeDriver.start();
-
-    // next index
-    _touch.backIndex = (_touch.backIndex + 1) % 3;
-    _touch.nowBackTri = _touch.backTriangles[_touch.backIndex];
+    Time.setTimeout(function (){
+        timeDriver.start();
+    }, 1000);
 }
 
 Touch.onPinch().subscribe((gesture)=>{
@@ -118,7 +117,7 @@ Touch.onPinch().subscribe((gesture)=>{
         switch (_touch.pinState)
         {
             case 'BEGAN':
-            _touch.canStart = true;
+            _touch.canStart = true; // setup one time key
             break;
 
             case 'CHANGED':
@@ -127,18 +126,29 @@ Touch.onPinch().subscribe((gesture)=>{
             case 'ENDED':
             case 'CANCELED':
             case 'FAILED':
-            backTriangleEnd();
+            backTriangleEnd(_touch.backIndex);
+
+            _touch.backIndex = (_touch.backIndex+1) % 3;
+            _touch.nowBackTri = _touch.backTriangles[_touch.backIndex];
             break;
         }
     });
+
     Reactive.monitorMany({x: gesture.location.x, y: gesture.location.y}, {fireOnInitialValue: true}).subscribe(data=>{
 
         // start new triangle
         if(_touch.canStart)
         {
+            _touch.canStart = false;
+
             // position triangle
             const touchPoint = Reactive.point2d(data.newValues.x, data.newValues.y);
-            const depth = pointDistance(_value.faceX, _value.faceY, _value.faceZ, _value.camX, _value.camY, _value.camZ);
+            let depth = 0;
+
+            if(_value.isFace)
+                depth = pointDistance(_value.faceX, _value.faceY, _value.faceZ, _value.camX, _value.camY, _value.camZ);
+            else
+                depth = pointDistance(_value.anchorX, _value.anchorY, _value.anchorZ, _value.camX, _value.camY, _value.camZ);
 
             const newPos = Scene.unprojectWithDepth(touchPoint, depth);
 
@@ -149,12 +159,21 @@ Touch.onPinch().subscribe((gesture)=>{
             };
 
             Time.setTimeoutWithSnapshot(snapObj, (time, data)=>{
-                _touch.nowBackTri.worldTransform.position = Reactive.point(data.newPosX, data.newPosY, data.newPosZ);
-                const headDist = pointDistance(_objs.camX, _objs.camY, _objs.camZ, data.newPosX, data.newPosY, data.newPosZ);
-                const backDist = headDist + 0.6;
-                const newRatio = backDist / headDist;
 
-                backTriangleStart();
+                    // const camPoint = new NYPoint(_value.camX, _value.camY, _value.camZ);
+                    // const headPoint = new NYPoint(data.newPosX, data.newPosY, data.newPosZ);
+                    //
+                    // const headDist = NYPoint.distance(camPoint, headPoint);
+                    // const newDist = headDist + 0.3;
+                    // const ratio = newDist / headDist;
+                    //
+                    // const diff = NYPoint.sub(headPoint, camPoint);
+                    // const newPoint = NYPoint.add(headPoint, NYPoint.multiply(diff, ratio));
+                    const newPoint = new NYPoint(newPosX, newPosY, newPosZ + 0.3);
+                    _touch.nowBackTri.worldTransform.position = newPoint.toSparkPoint();
+                    Diagnostics.log(_value.isFace);
+
+                backTriangleStart(_touch.backIndex);
             }, 0);
 
         }
