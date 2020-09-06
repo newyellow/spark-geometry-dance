@@ -26,6 +26,7 @@ export const Diagnostics = require('Diagnostics');
 
 import {_objs, snapChannels, _value} from "./objectData.js";
 import {NYPoint} from "./NYPoint.js";
+import {PolygonAnimator} from "./PolygonAnimationControl.js";
 
 let _touch = {};
 
@@ -33,8 +34,10 @@ let _touch = {};
 (async function() {
     _touch.pinchState = 'ENDED';
 
+    _touch.backAnimators = [];
     _touch.backTriangles = [];
     _touch.backIndex = 0;
+    _touch.frontAnimators = [];
     _touch.frontTriangles = [];
     _touch.frontIndex = 0;
     _touch.currentTriangle = null;
@@ -56,15 +59,27 @@ let _touch = {};
     const backTri3 = await Scene.root.findFirst('back-triangle-3');
     const backTri4 = await Scene.root.findFirst('back-triangle-4');
 
+    const backAnimator1 = new PolygonAnimator('bData1a', 'bData1b');
+    const backAnimator2 = new PolygonAnimator('bData2a', 'bData2b');
+    const backAnimator3 = new PolygonAnimator('bData3a', 'bData3b');
+    const backAnimator4 = new PolygonAnimator('bData4a', 'bData4b');
+
     const frontTri1 = await Scene.root.findFirst('front-triangle-1');
     const frontTri2 = await Scene.root.findFirst('front-triangle-2');
     const frontTri3 = await Scene.root.findFirst('front-triangle-3');
     const frontTri4 = await Scene.root.findFirst('front-triangle-4');
 
+    const frontAnimator1 = new PolygonAnimator('fData1a', 'fData1b');
+    const frontAnimator2 = new PolygonAnimator('fData2a', 'fData2b');
+    const frontAnimator3 = new PolygonAnimator('fData3a', 'fData3b');
+    const frontAnimator4 = new PolygonAnimator('fData4a', 'fData4b');
+
     _touch.backTriangles = [backTri1, backTri2, backTri3, backTri4];
+    _touch.backAnimators = [backAnimator1, backAnimator2, backAnimator3, backAnimator4];
     _touch.nowBackTri = _touch.backTriangles[_touch.backIndex];
 
     _touch.frontTriangles = [frontTri1, frontTri2, frontTri3, frontTri4];
+    _touch.frontAnimators = [frontAnimator1, frontAnimator2, frontAnimator3, frontAnimator4];
     _touch.nowFrontTri = _touch.frontTriangles[_touch.frontIndex];
 
     _touch.debugPoint = await Scene.root.findFirst('touch-point');
@@ -98,35 +113,6 @@ Touch.onRotate().subscribe(gesture=>{
         Patches.inputs.setString('rotateValue', (data.newValue * 57.2957795).toString());
     });
 });
-
-function backTriangleStart (triIndex) {
-
-    // scale up
-    const timeDriver = Animation.timeDriver({durationMilliseconds: 300});
-    const scaleSampler = Animation.samplers.easeOutQuart(0.0, 10.0);
-    const scaleAnimation = Animation.animate(timeDriver, scaleSampler);
-
-    _touch.backTriangles[triIndex].transform.scaleX = scaleAnimation;
-    _touch.backTriangles[triIndex].transform.scaleY = scaleAnimation;
-    _touch.backTriangles[triIndex].transform.scaleZ = scaleAnimation;
-
-    timeDriver.start();
-}
-
-function backTriangleEnd (triIndex) {
-    // scale down animation
-    const timeDriver = Animation.timeDriver({durationMilliseconds: 300});
-    const scaleSampler = Animation.samplers.easeOutQuart(10.0, 0.0);
-    const scaleAnimation = Animation.animate(timeDriver, scaleSampler);
-
-    _touch.backTriangles[triIndex].transform.scaleX = scaleAnimation;
-    _touch.backTriangles[triIndex].transform.scaleY = scaleAnimation;
-    _touch.backTriangles[triIndex].transform.scaleZ = scaleAnimation;
-
-    Time.setTimeout(function (){
-        timeDriver.start();
-    }, 1000);
-}
 
 Touch.onPinch().subscribe((gesture)=>{
 
@@ -162,11 +148,15 @@ Touch.onPinch().subscribe((gesture)=>{
 
             if(!_touch.isFront)
             {
+                _touch.backAnimators[_touch.backIndex].polygonEndAnim();
+                _touch.backAnimators[_touch.backIndex].sendPatchValues();
                 _touch.backIndex = (_touch.backIndex+1) % 4;
                 _touch.nowBackTri = _touch.backTriangles[_touch.backIndex];
             }
             else
             {
+                _touch.frontAnimators[_touch.frontIndex].polygonEndAnim();
+                _touch.frontAnimators[_touch.frontIndex].sendPatchValues();
                 _touch.frontIndex = (_touch.frontIndex+1) % 4;
                 _touch.nowFrontTri = _touch.frontTriangles[_touch.frontIndex];
             }
@@ -187,6 +177,9 @@ Touch.onPinch().subscribe((gesture)=>{
                 _touch.currentTriangle = _touch.backTriangles[_touch.backIndex];
                 Diagnostics.log(`BACK TRI! [${_touch.backIndex}]`);
                 moveTargetTrianglePos();
+
+                _touch.backAnimators[_touch.backIndex].polygonStartAnim();
+                _touch.backAnimators[_touch.backIndex].sendPatchValues();
             }
             else if(data.newValue < 1.0) // scale down, front
             {
@@ -196,6 +189,9 @@ Touch.onPinch().subscribe((gesture)=>{
                 _touch.currentTriangle = _touch.frontTriangles[_touch.frontIndex];
                 Diagnostics.log(`Front TRI! [${_touch.frontIndex}]`);
                 moveTargetTrianglePos();
+
+                _touch.frontAnimators[_touch.frontIndex].polygonStartAnim();
+                _touch.frontAnimators[_touch.frontIndex].sendPatchValues();
             }
         }
 
@@ -228,23 +224,10 @@ function moveTargetTrianglePos () {
     };
 
     Time.setTimeoutWithSnapshot(snapObj, (time, data)=>{
-        // const camPoint = new NYPoint(_value.camX, _value.camY, _value.camZ);
-        // const targetPoint = new NYPoint(data.newPosX, data.newPosY, data.newPosZ);
-        // const targetDist = NYPoint.distance(camPoint, targetPoint);
-        //
-        // const addVector = NYPoint.sub(targetPoint, camPoint);
-        // let newDist = NYPoint.distance(camPoint, targetPoint);
-        //
-        // if(_touch.isFront)
-        //     newDist += 0.3;
-        // else
-        //     newDist -= 0.3;
-        //
-        // const newRatio = newDist / targetDist;
-        // const newPoint = NYPoint.add(camPoint, NYPoint.multiply(addVector, newRatio));
         const newPoint = new NYPoint(data.newPosX, data.newPosY, data.newPosZ);
 
-        _touch.currentTriangle.worldTransform.position = newPoint.toSparkPoint();
+        if(_touch.currentTriangle != null)
+            _touch.currentTriangle.worldTransform.position = newPoint.toSparkPoint();
     }, 0);
 }
 
