@@ -46,6 +46,11 @@ let _touch = {};
     _touch.isFrontBackPicked = false;
     _touch.isFront = false;
 
+    _touch.rawScale = 0.0;
+    _touch.rawRotation = 0.0;
+    _touch.smoothScale = 0.0;
+    _touch.smoothRotation = 0.0;
+
     const backTri1 = await Scene.root.findFirst('back-triangle-1');
     const backTri2 = await Scene.root.findFirst('back-triangle-2');
     const backTri3 = await Scene.root.findFirst('back-triangle-3');
@@ -89,6 +94,7 @@ Touch.onRotate().subscribe(gesture=>{
     _objs.anchor.transform.rotationZ = gesture.rotation.mul(57.2957795);
 
     gesture.rotation.monitor().subscribe(data=>{
+        _touch.rawRotation = data.newValue * -1.6;
         Patches.inputs.setString('rotateValue', (data.newValue * 57.2957795).toString());
     });
 });
@@ -164,6 +170,7 @@ Touch.onPinch().subscribe((gesture)=>{
                 _touch.frontIndex = (_touch.frontIndex+1) % 4;
                 _touch.nowFrontTri = _touch.frontTriangles[_touch.frontIndex];
             }
+            _touch.currentTriangle = null;
             break;
         }
     });
@@ -191,6 +198,8 @@ Touch.onPinch().subscribe((gesture)=>{
                 moveTargetTrianglePos();
             }
         }
+
+        _touch.rawScale = data.newValue;
         Patches.inputs.setString('scaleValue', data.newValue.toString());
     });
 });
@@ -242,4 +251,40 @@ function moveTargetTrianglePos () {
 function pointDistance (x1, y1, z1, x2, y2, z2)
 {
     return Math.sqrt(Math.pow(x1-x2, 2) + Math.pow(y1-y2, 2) + Math.pow(z1-z2, 2));
+}
+
+function Update () {
+
+    if(_touch.currentTriangle != null)
+    {
+        _touch.smoothRotation = lerp(_touch.smoothRotation, _touch.rawRotation, 0.66);
+        _touch.smoothScale = lerp(_touch.smoothScale, _touch.rawScale, 0.66);
+
+        _touch.currentTriangle.transform.rotationZ = _touch.smoothRotation;
+
+        if(_touch.isFront)
+        {
+            _touch.currentTriangle.transform.scaleX = _touch.smoothScale * 4.0;
+            _touch.currentTriangle.transform.scaleY = _touch.smoothScale * 4.0;
+            _touch.currentTriangle.transform.scaleZ = _touch.smoothScale * 4.0;
+        }
+        else
+        {
+            _touch.currentTriangle.transform.scaleX = _touch.smoothScale * 6.0;
+            _touch.currentTriangle.transform.scaleY = _touch.smoothScale * 6.0;
+            _touch.currentTriangle.transform.scaleZ = _touch.smoothScale * 6.0;
+        }
+    }
+    else
+    {
+        _touch.smoothRotation = _touch.rawRotation;
+        _touch.smoothScale = _touch.rawScale;
+    }
+
+    Time.setTimeout(Update, 50);
+}
+Update();
+
+function lerp (valueA, valueB, t) {
+    return valueA + (valueB - valueA) * t;
 }
