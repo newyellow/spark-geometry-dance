@@ -54,6 +54,12 @@ let _touch = {};
     _touch.smoothScale = 0.0;
     _touch.smoothRotation = 0.0;
 
+    _touch.frontCircle = await Scene.root.findFirst('front-circle-1');
+    _touch.backCircle = await Scene.root.findFirst('back-circle-1');
+    _touch.tappedCounter = 0;
+    _touch.firstPoint = null;
+    _touch.secondPoint = null;
+
     const backTri1 = await Scene.root.findFirst('back-triangle-1');
     const backTri2 = await Scene.root.findFirst('back-triangle-2');
     const backTri3 = await Scene.root.findFirst('back-triangle-3');
@@ -87,21 +93,76 @@ let _touch = {};
 
 Touch.onTap().subscribe(gesture=>{
 
-    const touchPoint = Reactive.point2d(gesture.location.x, gesture.location.y);
-    const depth = pointDistance(_value.triangleX, _value.triangleY, _value.triangleZ, _value.camX, _value.camY, _value.camZ);
+    if(_touch.tappedCounter == 0)
+    {
+        _touch.tappedCounter = 1;
 
-    const newPos = Scene.unprojectWithDepth(touchPoint, depth);
+        const touchPoint = Reactive.point2d(gesture.location.x, gesture.location.y);
+        const depth = pointDistance(_value.anchorX, _value.anchorY, _value.anchorZ, _value.camX, _value.camY, _value.camZ);
 
+        const newPos = Scene.unprojectWithDepth(touchPoint, depth);
+        const snapObj = {
+            newPosX: newPos.x,
+            newPosY: newPos.y,
+            newPosZ: newPos.z
+        };
 
-    const snapObj = {
-        newPosX: newPos.x,
-        newPosY: newPos.y,
-        newPosZ: newPos.z
-    };
+        Time.setTimeoutWithSnapshot(snapObj, (time, data)=>{
+            //_objs.anchor.worldTransform.position = Reactive.point(data.newPosX, data.newPosY, data.newPosZ);
+            _touch.firstPoint = new NYPoint(data.newPosX, data.newPosY, data.newPosZ);
+        }, 0);
+    }
+    else if(_touch.tappedCounter == 1)
+    {
+        _touch.tappedCounter = 0;
 
-    Time.setTimeoutWithSnapshot(snapObj, (time, data)=>{
-        _objs.anchor.worldTransform.position = Reactive.point(data.newPosX, data.newPosY, data.newPosZ);
-    }, 0);
+        const touchPoint = Reactive.point2d(gesture.location.x, gesture.location.y);
+        const depth = pointDistance(_value.anchorX, _value.anchorY, _value.anchorZ, _value.camX, _value.camY, _value.camZ);
+
+        const newPos = Scene.unprojectWithDepth(touchPoint, depth);
+        const snapObj = {
+            newPosX: newPos.x,
+            newPosY: newPos.y,
+            newPosZ: newPos.z
+        };
+
+        Time.setTimeoutWithSnapshot(snapObj, (time, data)=>{
+            _touch.secondPoint = new NYPoint(data.newPosX, data.newPosY, data.newPosZ);
+
+            // set position
+            _touch.frontCircle.worldTransform.position = NYPoint.average(_touch.firstPoint, _touch.secondPoint).toSparkPoint();
+            _touch.backCircle.worldTransform.position = _touch.frontCircle.worldTransform.position;
+
+            // set scale
+            const toSize = NYPoint.distance(_touch.firstPoint, _touch.secondPoint) * 20;
+            _touch.frontCircle.transform.scaleX = toSize;
+            _touch.frontCircle.transform.scaleY = toSize;
+            _touch.frontCircle.transform.scaleZ = toSize;
+            _touch.backCircle.transform.scaleX = toSize;
+            _touch.backCircle.transform.scaleY = toSize;
+            _touch.backCircle.transform.scaleZ = toSize;
+
+            // set rotation
+            const upVec = new NYPoint(0.0, 1.0, 0.0);
+            const forwardVec = new NYPoint(_touch.secondPoint.x - _touch.firstPoint.x, _touch.secondPoint.y - _touch.firstPoint.y, 0.0);
+            const dotValue = NYPoint.dot(upVec, forwardVec);
+
+            const t = inverseLerp(-1, 1, dotValue);
+            const angleValue = lerp(180.0, 0.0, t);
+
+            if(forwardVec.x >= 0)
+            {
+                _touch.frontCircle.transform.rotationZ = angleValue * -0.0174532925;
+                _touch.backCircle.transform.rotationZ = angleValue * -0.0174532925;
+            }
+            else
+            {
+                _touch.frontCircle.transform.rotationZ = angleValue * 0.0174532925;
+                _touch.backCircle.transform.rotationZ = angleValue * 0.0174532925;
+            }
+        }, 0);
+    }
+
 });
 
 Touch.onRotate().subscribe(gesture=>{
@@ -270,4 +331,15 @@ Update();
 
 function lerp (valueA, valueB, t) {
     return valueA + (valueB - valueA) * t;
+}
+
+function inverseLerp (valueA, valueB, targetValue) {
+    if(targetValue <= valueA)
+        return 0.0;
+    else if(targetValue >= valueB)
+        return 1.0;
+    else
+    {
+        return (targetValue - valueA)/(valueB - valueA);
+    }
 }

@@ -8,6 +8,10 @@ class NYPoint {
         this.z = z;
     }
 
+    magnitude () {
+        return Math.sqrt(this.x*this.x + this.y*this.y + this.z*this.z);
+    }
+
     toSparkPoint () {
         return Reactive.point(this.x, this.y, this.z);
     }
@@ -26,12 +30,20 @@ class NYPoint {
         return new NYPoint(a.x * num, a.y * num, a.z * num);
     }
 
+    static average (a, b) {
+        return new NYPoint((a.x+b.x)/2.0, (a.y+b.y)/2.0, (a.z+b.z)/2.0);
+    }
+
     static add (a, b) {
         return new NYPoint(a.x+b.x, a.y+b.y, a.z+b.z);
     }
 
     static sub (a, b) {
         return new NYPoint(a.x-b.x, a.y-b.y, a.z-b.z);
+    }
+
+    static dot (a, b) {
+        return (a.x * b.x + a.y * b.y + a.z * b.z)/(a.magnitude() * b.magnitude());
     }
 }
 
