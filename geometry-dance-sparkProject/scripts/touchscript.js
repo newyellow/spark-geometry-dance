@@ -92,13 +92,15 @@ let _touch = {};
 })();
 
 Touch.onTap().subscribe(gesture=>{
-
     if(_touch.tappedCounter == 0)
     {
-        _touch.tappedCounter = 1;
+        _touch.tappedCounter = 600;
 
         const touchPoint = Reactive.point2d(gesture.location.x, gesture.location.y);
-        const depth = pointDistance(_value.anchorX, _value.anchorY, _value.anchorZ, _value.camX, _value.camY, _value.camZ);
+        let depth = pointDistance(_value.anchorX, _value.anchorY, _value.anchorZ, _value.camX, _value.camY, _value.camZ);
+
+        if(_value.isFace)
+            depth = pointDistance(_value.faceX, _value.faceY, _value.faceZ, _value.camX, _value.camY, _value.camZ);
 
         const newPos = Scene.unprojectWithDepth(touchPoint, depth);
         const snapObj = {
@@ -112,12 +114,15 @@ Touch.onTap().subscribe(gesture=>{
             _touch.firstPoint = new NYPoint(data.newPosX, data.newPosY, data.newPosZ);
         }, 0);
     }
-    else if(_touch.tappedCounter == 1)
+    else if(_touch.tappedCounter > 0)
     {
         _touch.tappedCounter = 0;
 
         const touchPoint = Reactive.point2d(gesture.location.x, gesture.location.y);
-        const depth = pointDistance(_value.anchorX, _value.anchorY, _value.anchorZ, _value.camX, _value.camY, _value.camZ);
+        let depth = pointDistance(_value.anchorX, _value.anchorY, _value.anchorZ, _value.camX, _value.camY, _value.camZ);
+
+        if(_value.isFace)
+            depth = pointDistance(_value.faceX, _value.faceY, _value.faceZ, _value.camX, _value.camY, _value.camZ);
 
         const newPos = Scene.unprojectWithDepth(touchPoint, depth);
         const snapObj = {
@@ -134,7 +139,7 @@ Touch.onTap().subscribe(gesture=>{
             _touch.backCircle.worldTransform.position = _touch.frontCircle.worldTransform.position;
 
             // set scale
-            const toSize = NYPoint.distance(_touch.firstPoint, _touch.secondPoint) * 20;
+            const toSize = NYPoint.distance(_touch.firstPoint, _touch.secondPoint) * 25;
             _touch.frontCircle.transform.scaleX = toSize;
             _touch.frontCircle.transform.scaleY = toSize;
             _touch.frontCircle.transform.scaleZ = toSize;
@@ -160,18 +165,16 @@ Touch.onTap().subscribe(gesture=>{
                 _touch.frontCircle.transform.rotationZ = angleValue * 0.0174532925;
                 _touch.backCircle.transform.rotationZ = angleValue * 0.0174532925;
             }
+
+            Patches.inputs.setPulse('surroundEffectPlay', Reactive.once());
         }, 0);
     }
 
 });
 
 Touch.onRotate().subscribe(gesture=>{
-    Patches.inputs.setString('rotateState', gesture.state);
-    _objs.anchor.transform.rotationZ = gesture.rotation.mul(57.2957795);
-
     gesture.rotation.monitor().subscribe(data=>{
         _touch.rawRotation = data.newValue * -1.6;
-        Patches.inputs.setString('rotateValue', (data.newValue * 57.2957795).toString());
     });
 });
 
@@ -272,9 +275,9 @@ function moveTargetTrianglePos () {
         depth = pointDistance(_value.anchorX, _value.anchorY, _value.anchorZ, _value.camX, _value.camY, _value.camZ);
 
     if(_touch.isFront)
-        depth -= 0.3;
+        depth -= 0.2;
     else
-        depth += 0.3;
+        depth += 0.2;
 
     const newPos = Scene.unprojectWithDepth(touchPoint, depth);
 
@@ -308,15 +311,15 @@ function Update () {
 
         if(_touch.isFront)
         {
-            _touch.currentTriangle.transform.scaleX = _touch.smoothScale * 4.0;
-            _touch.currentTriangle.transform.scaleY = _touch.smoothScale * 4.0;
-            _touch.currentTriangle.transform.scaleZ = _touch.smoothScale * 4.0;
+            _touch.currentTriangle.transform.scaleX = _touch.smoothScale * 8.0;
+            _touch.currentTriangle.transform.scaleY = _touch.smoothScale * 8.0;
+            _touch.currentTriangle.transform.scaleZ = _touch.smoothScale * 8.0;
         }
         else
         {
-            _touch.currentTriangle.transform.scaleX = _touch.smoothScale * 6.0;
-            _touch.currentTriangle.transform.scaleY = _touch.smoothScale * 6.0;
-            _touch.currentTriangle.transform.scaleZ = _touch.smoothScale * 6.0;
+            _touch.currentTriangle.transform.scaleX = _touch.smoothScale * 12.0;
+            _touch.currentTriangle.transform.scaleY = _touch.smoothScale * 12.0;
+            _touch.currentTriangle.transform.scaleZ = _touch.smoothScale * 12.0;
         }
     }
     else
@@ -325,6 +328,11 @@ function Update () {
         _touch.smoothScale = _touch.rawScale;
     }
 
+    if(_touch.tappedCounter > 0) {
+        _touch.tappedCounter -= 50;
+        if(_touch.tappedCounter < 0)
+            _touch.tappedCounter = 0;
+    }
     Time.setTimeout(Update, 50);
 }
 Update();

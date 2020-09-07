@@ -1,5 +1,4 @@
 const Time = require ('Time');
-const Scene = require ('Scene');
 const Animation = require ('Animation');
 const Patches = require ('Patches');
 const Reactive = require ('Reactive');
@@ -28,14 +27,14 @@ class PolygonAnimator {
     polygonStartAnim () {
         const timeDriver = Animation.timeDriver({durationMilliseconds: 300});
 
-        const outerDist = Animation.samplers.bezier(0.0, 0.0, 0.0, 6.0);
-        const outerWidth = Animation.samplers.bezier(0.0, 0.1, 0.1, 0.1);
+        const outerDist = Animation.samplers.bezier(0.0, 0.0, 0.0, 7.0);
+        const outerWidth = Animation.samplers.bezier(0.0, 0.06, 0.06, 0.06);
 
-        const mainSizeAnim = Animation.samplers.bezier(0.0, 0.6, 0.6, 0.6);
-        const mainWidthAnim = Animation.samplers.bezier(0.0, 0.2, 0.2, 0.2);
+        const mainSizeAnim = Animation.samplers.bezier(0.0, 0.3, 0.3, 0.3);
+        const mainWidthAnim = Animation.samplers.bezier(0.0, 0.1, 0.1, 0.1);
 
-        const innerDist = Animation.samplers.bezier(0.0, 0.0, 0.1, 1.0);
-        const innerWidth = Animation.samplers.bezier(0.0, 0.1, 0.1, 0.3);
+        const innerDist = Animation.samplers.bezier(0.0, 0.0, 0.06, 1.0);
+        const innerWidth = Animation.samplers.bezier(0.0, 0.06, 0.06, 0.2);
 
         this.outerDist = Animation.animate(timeDriver, outerDist);
         this.outerWidth = Animation.animate(timeDriver, outerWidth);
@@ -50,16 +49,17 @@ class PolygonAnimator {
     }
 
     polygonEndAnim () {
-        const timeDriver = Animation.timeDriver({durationMilliseconds: 300});
 
-        const outerDist = Animation.samplers.bezier(-0.06, -0.06, 0.6, 0.6);
-        const outerWidth = Animation.samplers.bezier(0.06, 0.06, 0.06, 0.0);
+        const timeDriver = Animation.timeDriver({durationMilliseconds: 200});
+
+        const outerDist = Animation.samplers.bezier(0.0, -0.06, 0.6, 0.6);
+        const outerWidth = Animation.samplers.bezier(0.0, 0.06, 0.06, 0.0);
 
         // const mainSizeAnim = Animation.samplers.bezier(0.0, 0.6, 0.6, 0.6);
-        const mainWidthAnim = Animation.samplers.bezier(0.2, 0.0, 0.0, 0.0);
+        const mainWidthAnim = Animation.samplers.bezier(0.1, 0.0, 0.0, 0.0);
 
-        const innerDist = Animation.samplers.bezier(-0.06, -0.06, 0.2, 0.2);
-        const innerWidth = Animation.samplers.bezier(0.06, 0.06, 0.06, 0.0);
+        const innerDist = Animation.samplers.bezier(0.0, -0.06, 0.1, 0.1);
+        const innerWidth = Animation.samplers.bezier(0.0, 0.06, 0.06, 0.0);
 
         this.outerDist = Animation.animate(timeDriver, outerDist);
         this.outerWidth = Animation.animate(timeDriver, outerWidth);
@@ -70,7 +70,11 @@ class PolygonAnimator {
         this.innerDist = Animation.animate(timeDriver, innerDist);
         this.innerWidth = Animation.animate(timeDriver, innerWidth);
 
-        timeDriver.start();
+        // timeDriver.start();
+
+        Time.setTimeout(function(){
+            timeDriver.start();
+        }, 100);
     }
 
     sendPatchValues () {

@@ -53,17 +53,17 @@ let _value = {};
 })();
 
 function Update (time, data) {
-    _value.anchorX = NYFloor(data.anchorX, 1000);
-    _value.anchorY = NYFloor(data.anchorY, 1000);
-    _value.anchorZ = NYFloor(data.anchorZ, 1000);
+    _value.anchorX = data.anchorX;
+    _value.anchorY = data.anchorY;
+    _value.anchorZ = data.anchorZ;
 
-    _value.camX = NYFloor(data.camX, 1000);
-    _value.camY = NYFloor(data.camY, 1000);
-    _value.camZ = NYFloor(data.camZ, 1000);
+    _value.camX = data.camX;
+    _value.camY = data.camY;
+    _value.camZ = data.camZ;
 
-    _value.faceX = NYFloor(data.faceX, 1000);
-    _value.faceY = NYFloor(data.faceY, 1000);
-    _value.faceZ = NYFloor(data.faceZ, 1000);
+    _value.faceX = data.faceX;
+    _value.faceY = data.faceY;
+    _value.faceZ = data.faceZ;
 
     _value.isFace = data.isFace;
 
