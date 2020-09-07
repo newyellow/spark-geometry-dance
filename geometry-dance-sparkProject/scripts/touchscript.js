@@ -193,7 +193,6 @@ Touch.onPinch().subscribe((gesture)=>{
 
     gesture.state.monitor({fireOnInitialValue: true}).subscribe((data)=>{
         _touch.pinState = data.newValue;
-        Patches.inputs.setString('debugState', data.newValue);
 
         switch (_touch.pinState)
         {
@@ -260,7 +259,6 @@ Touch.onPinch().subscribe((gesture)=>{
         }
 
         _touch.rawScale = data.newValue;
-        Patches.inputs.setString('scaleValue', data.newValue.toString());
     });
 });
 
