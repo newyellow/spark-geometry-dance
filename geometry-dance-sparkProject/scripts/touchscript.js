@@ -178,7 +178,7 @@ Touch.onTap().subscribe(gesture=>{
 
 Touch.onRotate().subscribe(gesture=>{
     gesture.rotation.monitor().subscribe(data=>{
-        _touch.rawRotation = -data.newValue;
+        _touch.rawRotation = -data.newValue * 2.0;
     });
 });
 
@@ -218,6 +218,8 @@ Touch.onPinch().subscribe((gesture)=>{
                 _touch.backAnimators[_touch.backIndex].polygonEndAnim();
                 _touch.backAnimators[_touch.backIndex].sendPatchValues();
                 _touch.backIndex = (_touch.backIndex+1) % 4;
+
+                Patches.inputs.setPulse('lightShadowOut', Reactive.once());
             }
             else
             {
@@ -244,6 +246,9 @@ Touch.onPinch().subscribe((gesture)=>{
                 Diagnostics.log(`BACK TRI! [${_touch.backIndex}]`);
                 moveTargetTrianglePos(_touch.pinchX, _touch.pinchY, _touch.currentTriangle);
                 handlePolygonStart(_touch.backTriangles[_touch.backIndex], _touch.backAnimators[_touch.backIndex]);
+
+                // if back, light shadow grow
+                Patches.inputs.setPulse('lightShadowIn', Reactive.once());
             }
             else if(data.newValue < 1.0) // scale down, front
             {
@@ -330,6 +335,8 @@ function Update () {
         _touch.smoothRotation = lerp(_touch.smoothRotation, _touch.rawRotation, 0.66);
         _touch.smoothScale = lerp(_touch.smoothScale, _touch.rawScale, 0.66);
 
+        Patches.inputs.setScalar('lightShadowMultiplier', _touch.smoothScale);
+
         if(_touch.isFront)
         {
             _touch.currentTriangle.transform.scaleX = _touch.smoothScale * 8.0;
@@ -341,6 +348,11 @@ function Update () {
             _touch.currentTriangle.transform.scaleX = _touch.smoothScale * 12.0;
             _touch.currentTriangle.transform.scaleY = _touch.smoothScale * 12.0;
             _touch.currentTriangle.transform.scaleZ = _touch.smoothScale * 12.0;
+
+            _objs.lightShadow.transform.x = _touch.currentTriangle.transform.position.x;
+            _objs.lightShadow.transform.y = 0.0;
+            _objs.lightShadow.transform.z = _touch.currentTriangle.transform.position.z;
+
         }
     }
     else

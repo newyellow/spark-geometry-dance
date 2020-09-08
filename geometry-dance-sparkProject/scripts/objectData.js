@@ -32,6 +32,8 @@ let _value = {};
     _objs.camReference = await Scene.root.findFirst('Camera');
     _objs.anchor = await Scene.root.findFirst('grid-anchor');
     _objs.faceAnchor = await Scene.root.findFirst('face-anchor');
+    _objs.lightShadow = await Scene.root.findFirst('lightShadow');
+    
     //_objs.testFaceWorld = await Scene.root.findFirst('test-face-world');
     //_objs.face = FaceTracking.face(0);
 
