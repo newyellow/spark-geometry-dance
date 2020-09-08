@@ -178,7 +178,7 @@ Touch.onTap().subscribe(gesture=>{
 
 Touch.onRotate().subscribe(gesture=>{
     gesture.rotation.monitor().subscribe(data=>{
-        _touch.rawRotation = data.newValue;
+        _touch.rawRotation = -data.newValue;
     });
 });
 

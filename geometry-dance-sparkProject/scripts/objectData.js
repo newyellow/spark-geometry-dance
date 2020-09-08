@@ -18,7 +18,7 @@ const Scene = require('Scene');
 const Time = require('Time');
 const Touch = require('TouchGestures');
 const Reactive = require('Reactive');
-const FaceTracking = require('FaceTracking');
+//const FaceTracking = require('FaceTracking');
 
 // Use export keyword to make a symbol available in scripting debug console
 export const Diagnostics = require('Diagnostics');
@@ -32,8 +32,8 @@ let _value = {};
     _objs.camReference = await Scene.root.findFirst('Camera');
     _objs.anchor = await Scene.root.findFirst('grid-anchor');
     _objs.faceAnchor = await Scene.root.findFirst('face-anchor');
-    _objs.testFaceWorld = await Scene.root.findFirst('test-face-world');
-    _objs.face = FaceTracking.face(0);
+    //_objs.testFaceWorld = await Scene.root.findFirst('test-face-world');
+    //_objs.face = FaceTracking.face(0);
 
     snapChannels.anchorX = _objs.anchor.worldTransform.position.x;
     snapChannels.anchorY = _objs.anchor.worldTransform.position.y;
@@ -43,11 +43,17 @@ let _value = {};
     snapChannels.camY = _objs.camReference.worldTransform.position.y;
     snapChannels.camZ = _objs.camReference.worldTransform.position.z;
 
-    snapChannels.faceX = _objs.faceAnchor.worldTransform.position.x;
-    snapChannels.faceY = _objs.faceAnchor.worldTransform.position.y;
-    snapChannels.faceZ = _objs.faceAnchor.worldTransform.position.z;
+    // snapChannels.faceX = _objs.faceAnchor.worldTransform.position.x;
+    // snapChannels.faceY = _objs.faceAnchor.worldTransform.position.y;
+    // snapChannels.faceZ = _objs.faceAnchor.worldTransform.position.z;
+    //
+    // snapChannels.isFace = _objs.face.isTracked;
 
-    snapChannels.isFace = _objs.face.isTracked;
+    _value.faceX = 0;
+    _value.faceY = 0;
+    _value.faceZ = 0;
+
+    _value.isFace = false;
 
     Time.setIntervalWithSnapshot(snapChannels, Update, 50);
 })();
@@ -67,7 +73,7 @@ function Update (time, data) {
 
     _value.isFace = data.isFace;
 
-    _objs.testFaceWorld.worldTransform.position = Reactive.point(_value.faceX, _value.faceY, _value.faceZ);
+    // _objs.testFaceWorld.worldTransform.position = Reactive.point(_value.faceX, _value.faceY, _value.faceZ);
 }
 
 function NYFloor (value, multiplier) {
