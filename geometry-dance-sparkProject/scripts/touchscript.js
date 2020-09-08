@@ -227,6 +227,8 @@ Touch.onPinch().subscribe((gesture)=>{
                 _touch.frontAnimators[_touch.frontIndex].polygonEndAnim();
                 _touch.frontAnimators[_touch.frontIndex].sendPatchValues();
                 _touch.frontIndex = (_touch.frontIndex+1) % 4;
+
+                Patches.inputs.setPulse('faceLightOut', Reactive.once());
             }
             _touch.currentTriangle = null;
             break;
@@ -259,6 +261,8 @@ Touch.onPinch().subscribe((gesture)=>{
                 Diagnostics.log(`Front TRI! [${_touch.frontIndex}]`);
                 moveTargetTrianglePos(_touch.pinchX, _touch.pinchY, _touch.currentTriangle);
                 handlePolygonStart(_touch.frontTriangles[_touch.frontIndex], _touch.frontAnimators[_touch.frontIndex]);
+
+                Patches.inputs.setPulse('faceLightIn', Reactive.once());
             }
         }
 
@@ -342,6 +346,11 @@ function Update () {
             _touch.currentTriangle.transform.scaleX = _touch.smoothScale * 8.0;
             _touch.currentTriangle.transform.scaleY = _touch.smoothScale * 8.0;
             _touch.currentTriangle.transform.scaleZ = _touch.smoothScale * 8.0;
+
+            _objs.humanLight.transform.x = _touch.currentTriangle.transform.position.x;
+            _objs.humanLight.transform.y = _touch.currentTriangle.transform.position.y;
+            _objs.humanLight.transform.z = _touch.currentTriangle.transform.position.z;
+
         }
         else
         {
