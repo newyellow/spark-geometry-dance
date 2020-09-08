@@ -30,7 +30,7 @@ let _value = {};
 // Enables async/await in JS [part 1]
 (async function() {
     _objs.camReference = await Scene.root.findFirst('Camera');
-    _objs.anchor = await Scene.root.findFirst('anchor');
+    _objs.anchor = await Scene.root.findFirst('grid-anchor');
     _objs.faceAnchor = await Scene.root.findFirst('face-anchor');
     _objs.testFaceWorld = await Scene.root.findFirst('test-face-world');
     _objs.face = FaceTracking.face(0);

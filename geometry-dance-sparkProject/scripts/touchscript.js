@@ -27,8 +27,11 @@ export const Diagnostics = require('Diagnostics');
 import {_objs, snapChannels, _value} from "./objectData.js";
 import {NYPoint} from "./NYPoint.js";
 import {PolygonAnimator} from "./PolygonAnimationControl.js";
+import {_uiStatus} from "./menu.js";
 
 let _touch = {};
+
+const DEG_TO_RADIAN = 0.0174532925;
 
 // Enables async/await in JS [part 1]
 (async function() {
@@ -53,12 +56,15 @@ let _touch = {};
     _touch.rawRotation = 0.0;
     _touch.smoothScale = 0.0;
     _touch.smoothRotation = 0.0;
+    _touch.fixedRotation = 0.0;
 
     _touch.frontCircle = await Scene.root.findFirst('front-circle-1');
     _touch.backCircle = await Scene.root.findFirst('back-circle-1');
     _touch.tappedCounter = 0;
     _touch.firstPoint = null;
     _touch.secondPoint = null;
+
+    _touch.canRotate = false;
 
     const backTri1 = await Scene.root.findFirst('back-triangle-1');
     const backTri2 = await Scene.root.findFirst('back-triangle-2');
@@ -82,11 +88,9 @@ let _touch = {};
 
     _touch.backTriangles = [backTri1, backTri2, backTri3, backTri4];
     _touch.backAnimators = [backAnimator1, backAnimator2, backAnimator3, backAnimator4];
-    _touch.nowBackTri = _touch.backTriangles[_touch.backIndex];
 
     _touch.frontTriangles = [frontTri1, frontTri2, frontTri3, frontTri4];
     _touch.frontAnimators = [frontAnimator1, frontAnimator2, frontAnimator3, frontAnimator4];
-    _touch.nowFrontTri = _touch.frontTriangles[_touch.frontIndex];
 
     _touch.debugPoint = await Scene.root.findFirst('touch-point');
 })();
@@ -157,13 +161,13 @@ Touch.onTap().subscribe(gesture=>{
 
             if(forwardVec.x >= 0)
             {
-                _touch.frontCircle.transform.rotationZ = angleValue * -0.0174532925;
-                _touch.backCircle.transform.rotationZ = angleValue * -0.0174532925;
+                _touch.frontCircle.transform.rotationZ = angleValue * -DEG_TO_RADIAN;
+                _touch.backCircle.transform.rotationZ = angleValue * -DEG_TO_RADIAN;
             }
             else
             {
-                _touch.frontCircle.transform.rotationZ = angleValue * 0.0174532925;
-                _touch.backCircle.transform.rotationZ = angleValue * 0.0174532925;
+                _touch.frontCircle.transform.rotationZ = angleValue * DEG_TO_RADIAN;
+                _touch.backCircle.transform.rotationZ = angleValue * DEG_TO_RADIAN;
             }
 
             Patches.inputs.setPulse('surroundEffectPlay', Reactive.once());
@@ -174,7 +178,7 @@ Touch.onTap().subscribe(gesture=>{
 
 Touch.onRotate().subscribe(gesture=>{
     gesture.rotation.monitor().subscribe(data=>{
-        _touch.rawRotation = data.newValue * -1.6;
+        _touch.rawRotation = data.newValue;
     });
 });
 
@@ -205,23 +209,22 @@ Touch.onPinch().subscribe((gesture)=>{
             break;
 
             case 'ENDED':
-            case 'CANCELED':
-            case 'FAILED':
             //backTriangleEnd(_touch.backIndex);
 
             if(!_touch.isFront)
             {
+                Diagnostics.log("BACK: " + _touch.backIndex);
+
                 _touch.backAnimators[_touch.backIndex].polygonEndAnim();
                 _touch.backAnimators[_touch.backIndex].sendPatchValues();
                 _touch.backIndex = (_touch.backIndex+1) % 4;
-                _touch.nowBackTri = _touch.backTriangles[_touch.backIndex];
             }
             else
             {
+                Diagnostics.log("FRONT: " + _touch.frontIndex);
                 _touch.frontAnimators[_touch.frontIndex].polygonEndAnim();
                 _touch.frontAnimators[_touch.frontIndex].sendPatchValues();
                 _touch.frontIndex = (_touch.frontIndex+1) % 4;
-                _touch.nowFrontTri = _touch.frontTriangles[_touch.frontIndex];
             }
             _touch.currentTriangle = null;
             break;
@@ -239,10 +242,8 @@ Touch.onPinch().subscribe((gesture)=>{
 
                 _touch.currentTriangle = _touch.backTriangles[_touch.backIndex];
                 Diagnostics.log(`BACK TRI! [${_touch.backIndex}]`);
-                moveTargetTrianglePos();
-
-                _touch.backAnimators[_touch.backIndex].polygonStartAnim();
-                _touch.backAnimators[_touch.backIndex].sendPatchValues();
+                moveTargetTrianglePos(_touch.pinchX, _touch.pinchY, _touch.currentTriangle);
+                handlePolygonStart(_touch.backTriangles[_touch.backIndex], _touch.backAnimators[_touch.backIndex]);
             }
             else if(data.newValue < 1.0) // scale down, front
             {
@@ -251,10 +252,8 @@ Touch.onPinch().subscribe((gesture)=>{
 
                 _touch.currentTriangle = _touch.frontTriangles[_touch.frontIndex];
                 Diagnostics.log(`Front TRI! [${_touch.frontIndex}]`);
-                moveTargetTrianglePos();
-
-                _touch.frontAnimators[_touch.frontIndex].polygonStartAnim();
-                _touch.frontAnimators[_touch.frontIndex].sendPatchValues();
+                moveTargetTrianglePos(_touch.pinchX, _touch.pinchY, _touch.currentTriangle);
+                handlePolygonStart(_touch.frontTriangles[_touch.frontIndex], _touch.frontAnimators[_touch.frontIndex]);
             }
         }
 
@@ -262,9 +261,37 @@ Touch.onPinch().subscribe((gesture)=>{
     });
 });
 
-function moveTargetTrianglePos () {
+function handlePolygonStart (targetTriangleObj, targetAnimator) {
+    if(_uiStatus.nowMode == 1) // triangle
+    {
+        _touch.canRotate = true;
+        targetAnimator.shapeCount = 3;
+    }
+    else if(_uiStatus.nowMode == 2)
+    {
+        _touch.canRotate = true;
+        targetAnimator.shapeCount = 4;
+    }
+    else if(_uiStatus.nowMode == 3) // need to check each setting
+    {
+        const targetSeqObj = _uiStatus.nowSequences[_uiStatus.nowSeqIndex];
+
+        _touch.canRotate = targetSeqObj.canRotate;
+        targetAnimator.shapeCount = targetSeqObj.shapeCount;
+
+        Diagnostics.log("can rotate?: " + targetSeqObj.canRotate);
+        targetTriangleObj.transform.rotationZ = targetSeqObj.angle * DEG_TO_RADIAN;
+        _touch.fixedRotation = targetSeqObj.angle * DEG_TO_RADIAN;
+
+        _uiStatus.nowSeqIndex = (_uiStatus.nowSeqIndex+1) % _uiStatus.nowSequences.length;
+    }
+    targetAnimator.polygonStartAnim();
+    targetAnimator.sendPatchValues();
+}
+
+function moveTargetTrianglePos (screenX, screenY, moveTarget) {
     // position triangle
-    const touchPoint = Reactive.point2d(_touch.pinchX, _touch.pinchY);
+    const touchPoint = Reactive.point2d(screenX, screenY);
     let depth = 0;
 
     if(_value.isFace)
@@ -287,9 +314,7 @@ function moveTargetTrianglePos () {
 
     Time.setTimeoutWithSnapshot(snapObj, (time, data)=>{
         const newPoint = new NYPoint(data.newPosX, data.newPosY, data.newPosZ);
-
-        if(_touch.currentTriangle != null)
-            _touch.currentTriangle.worldTransform.position = newPoint.toSparkPoint();
+        moveTarget.worldTransform.position = newPoint.toSparkPoint();
     }, 0);
 }
 
@@ -304,8 +329,6 @@ function Update () {
     {
         _touch.smoothRotation = lerp(_touch.smoothRotation, _touch.rawRotation, 0.66);
         _touch.smoothScale = lerp(_touch.smoothScale, _touch.rawScale, 0.66);
-
-        _touch.currentTriangle.transform.rotationZ = _touch.smoothRotation;
 
         if(_touch.isFront)
         {
@@ -324,6 +347,12 @@ function Update () {
     {
         _touch.smoothRotation = _touch.rawRotation;
         _touch.smoothScale = _touch.rawScale;
+    }
+
+    if(_touch.canRotate == true)
+    {
+        if(_touch.currentTriangle != null)
+            _touch.currentTriangle.transform.rotationZ =  _touch.fixedRotation + _touch.smoothRotation;
     }
 
     if(_touch.tappedCounter > 0) {
