@@ -25,6 +25,7 @@ let _uiStatus = {
 let icons = {};
 
 const storage = Persistence.userScope;
+let uiHider = {};
 
 (async function() {
 
@@ -62,6 +63,16 @@ const storage = Persistence.userScope;
     })
     .catch(error => {
         Diagnostics.log("no data!");
+    });
+
+    // hide menu button
+    uiHider.isHidden = false;
+    uiHider.button = await Scene.root.findFirst('pickerHideButton');
+
+    Touch.onTap(uiHider.button).subscribe(data=>{
+        Diagnostics.log("button tapped!");
+        uiHider.isHidden = !uiHider.isHidden;
+        uiPicker.visible = uiHider.isHidden;
     });
 })();
 
@@ -175,6 +186,7 @@ function handleUiPick (index) {
         selectSequenceItem(index);
     }
 }
+
 
 function modifyOrAddSequence (pickedIndex) {
     if(pickedIndex == _uiStatus.nowSequences.length + 1) // pick add
